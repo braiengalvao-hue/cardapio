@@ -1,0 +1,75 @@
+version: '3.8'
+
+# Carregar variaveis do .env (se existir)
+# Copie .env.example para .env e ajuste
+services:
+  # ---- PHP + Apache ----
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cardapio-app
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/apache.conf:/etc/apache2/sites-available/000-default.conf
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_SOCKET: ""
+      DB_NAME: cardapio
+      DB_USER: cardapio
+      DB_PASS: cardapio123
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - cardapio-net
+
+  # ---- MySQL ----
+  mysql:
+    image: mysql:8.0
+    container_name: cardapio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: cardapio
+      MYSQL_USER: cardapio
+      MYSQL_PASSWORD: cardapio123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cardapio-net
+
+  # ---- phpMyAdmin (opcional) ----
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: cardapio-pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "8081:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - cardapio-net
+
+volumes:
+  mysql-data:
+
+networks:
+  cardapio-net:
+    driver: bridge
