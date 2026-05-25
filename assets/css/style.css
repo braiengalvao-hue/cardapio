@@ -62,7 +62,7 @@ body {
     font-weight: 600;
 }
 
-.header-textos h2 {
+.header-textos h1 {
     font-size: 24px;
     font-weight: 700;
     margin-bottom: 6px;
@@ -142,7 +142,7 @@ body {
     box-shadow: var(--sombra-card);
 }
 
-.card-destaque h4 {
+.card-destaque h2 {
     font-size: 18px;
     color: var(--cor-texto-destaque);
 }
@@ -496,7 +496,7 @@ body {
     margin-bottom: 16px;
 }
 
-.carrinho-header h3 {
+.carrinho-header h2 {
     font-size: 20px;
     color: var(--cor-produto);
 }
@@ -720,7 +720,7 @@ body {
     padding: 20px;
 }
 
-.modal-conteudo h3 {
+.modal-conteudo h2 {
     font-size: 20px;
     color: var(--cor-produto);
     margin-bottom: 4px;
@@ -809,7 +809,7 @@ body {
     margin-bottom: 10px;
 }
 
-.pedido-sucesso h3 {
+.pedido-sucesso h2 {
     font-size: 22px;
     color: var(--cor-produto);
     margin-bottom: 6px;
@@ -960,4 +960,33 @@ body {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
+}
+
+/* Adicionais checkbox styles */
+.adicional-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cor-produto);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.adicional-checkbox-label:hover {
+    background: #f3f4f6;
+    border-color: var(--cor-borda-destaque);
+}
+
+.chk-adicional {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--cor-primaria-solid);
+    cursor: pointer;
 }

@@ -1,48 +1,68 @@
 <?php
 /**
- * POST /api/atualizar_status.php
- * Atualiza o status de um pedido
- *
- * Body JSON: { "id_pedido": 1, "status": "em_preparo" }
- *
- * Status validos: pendente, em_preparo, saiu_para_entrega, concluido, cancelado
+ * GET  ?id_pedido=N  — consulta status (cardápio do cliente)
+ * POST { id_pedido, status } — atualiza status (painel administrativo)
  */
-
+require_once __DIR__ . '/../config/db.php';
 header('Content-Type: application/json; charset=utf-8');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    jsonResponse(['sucesso' => false, 'erro' => 'Metodo nao permitido'], 405);
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+function jsonResposta(array $dados, int $codigo = 200): void
+{
+    http_response_code($codigo);
+    echo json_encode($dados, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-require_once __DIR__ . '/../config/bootstrap.php';
+switch ($method) {
+    case 'GET':
+        $id_pedido = isset($_GET['id_pedido']) ? (int) $_GET['id_pedido'] : 0;
+        if ($id_pedido <= 0) {
+            jsonResposta(['error' => 'Informe um id_pedido válido'], 400);
+        }
 
-$input = json_decode(file_get_contents('php://input'), true);
+        $stmt = mysqli_prepare($conn, 'SELECT id_pedido, status, data_atualizacao, data_pedido FROM pedidos WHERE id_pedido = ?');
+        mysqli_stmt_bind_param($stmt, 'i', $id_pedido);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $pedido = mysqli_fetch_assoc($result);
 
-if (!$input || empty($input['id_pedido']) || empty($input['status'])) {
-    jsonResponse(['sucesso' => false, 'erro' => 'id_pedido e status obrigatorios'], 400);
-}
+        if (!$pedido) {
+            jsonResposta(['error' => 'Pedido não localizado'], 404);
+        }
 
-$statusValidos = ['pendente', 'em_preparo', 'saiu_para_entrega', 'concluido', 'cancelado'];
+        $atualizado = $pedido['data_atualizacao'] ?? $pedido['data_pedido'] ?? null;
+        jsonResposta([
+            'id_pedido' => (int) $pedido['id_pedido'],
+            'status' => $pedido['status'],
+            'atualizado_em' => $atualizado,
+        ]);
 
-if (!in_array($input['status'], $statusValidos)) {
-    jsonResponse(['sucesso' => false, 'erro' => 'Status invalido. Use: ' . implode(', ', $statusValidos)], 400);
-}
+    case 'POST':
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($input) || empty($input['id_pedido']) || empty($input['status'])) {
+            jsonResposta(['error' => 'id_pedido e status são obrigatórios'], 400);
+        }
 
-try {
-    $pdo = getConnection();
+        $validos = ['pendente', 'em_preparo', 'saiu_para_entrega', 'concluido', 'cancelado'];
+        if (!in_array($input['status'], $validos, true)) {
+            jsonResposta(['error' => 'Status inválido'], 400);
+        }
 
-    $stmt = $pdo->prepare('UPDATE pedidos SET status = ? WHERE id_pedido = ?');
-    $stmt->execute([$input['status'], $input['id_pedido']]);
+        $id = (int) $input['id_pedido'];
+        $status = $input['status'];
 
-    if ($stmt->rowCount() === 0) {
-        jsonResponse(['sucesso' => false, 'erro' => 'Pedido nao encontrado'], 404);
-    }
+        $stmt = mysqli_prepare($conn, 'UPDATE pedidos SET status = ? WHERE id_pedido = ?');
+        mysqli_stmt_bind_param($stmt, 'si', $status, $id);
+        mysqli_stmt_execute($stmt);
 
-    jsonResponse([
-        'sucesso'  => true,
-        'mensagem' => "Status atualizado para {$input['status']}",
-    ]);
+        if (mysqli_stmt_affected_rows($stmt) === 0) {
+            jsonResposta(['error' => 'Pedido não encontrado'], 404);
+        }
 
-} catch (PDOException $e) {
-    jsonResponse(['sucesso' => false, 'erro' => 'Erro ao atualizar: ' . $e->getMessage()], 500);
+        jsonResposta(['success' => true, 'mensagem' => "Status atualizado para {$status}"]);
+
+    default:
+        jsonResposta(['error' => 'Método não permitido'], 405);
 }
